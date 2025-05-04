@@ -1,0 +1,52 @@
+MQ3 stm32
+#include "main.h"
+#include "lcd.h"
+#include <stdio.h>
+
+void adcInit()
+{
+    RCC->APB2ENR |= (1 << 8);
+    RCC->AHB1ENR |= (1 << 2);
+    ADC->CCR |= (3 << 16);
+    ADC1->CR1 &= ~(1 << 24);
+    ADC1->CR2 &= ~(1 << 1);
+    ADC1->CR2 &= ~(1 << 11);
+    ADC1->CR2 &= ~(1 << 10);
+    ADC1->SMPR1 |= 0x07 << 6;
+    ADC1->SQR1 |= 0x00;
+    ADC1->SQR3 |= (12 << 0);
+    GPIOC->MODER |= (3 << 4);
+    ADC1->CR2 |= (1 << 0);
+}
+
+unsigned int readADC()
+{
+    unsigned int retval;
+    ADC1->SR = 0x00;
+    ADC1->CR2 |= (1 << 30);
+    while (!((ADC1->SR) & 0x12));
+    return ADC1->DR;
+}
+
+void SystemClock_Config(void);
+
+int main(void)
+{
+    unsigned int retdat, i, final;
+    unsigned char buf[16];
+
+    HAL_Init();
+    SystemClock_Config();
+    adcInit();
+    lcd_init();
+    lcd_clear();
+    lcd_displayString(1, 1, "MQ3-PC2-CH12");
+
+    while (1)
+    {
+        retdat = readADC();
+        sprintf(buf, "%4.0d mv", retdat);
+        lcd_displayString(2, 1, buf);
+        HAL_Delay(1000);
+    }
+}
